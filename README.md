@@ -118,3 +118,11 @@ Para executar os testes da aplicação com cobertura de código, execute o segui
 ```sh
 poetry run pytest --cov=app
 ```
+
+### Testes Unitários - Gherkin (Cucumber)
+
+Para executar os testes unitários da aplicação com Gherkin, execute o seguinte comando na raiz do projeto:
+
+```sh
+poetry run behave .\app\test\features
+```
