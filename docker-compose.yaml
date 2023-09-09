@@ -1,0 +1,38 @@
+version: "3.8"
+services:
+  # MongoDB
+  # Set the MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PASSWORD
+  # environment variables to create a user and password for the root user.
+  mongodb:
+    image: mongo:6
+    container_name: veiculos-via-montadora-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_user
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+  # API
+  # This is our Python API that will connect to the MongoDB database.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+      - ENVIRONMENT=production
+    container_name: veiculos-via-montadora-api
+    environment:
+      - MONGODB_HOST=mongodb://mongo_user:mongo_password@host.docker.internal:27017
+    ports:
+      - "8080:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - mongodb
+
+# Volumes. 
+volumes:
+  mongodb_data:
+    external: false

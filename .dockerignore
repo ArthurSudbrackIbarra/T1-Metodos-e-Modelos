@@ -1,0 +1,2 @@
+# Ignore all pdfs samples used for testing.
+app/test/pdfs_samples

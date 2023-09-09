@@ -1,0 +1,145 @@
+# Environment variables.
+variables:
+  # The Docker host variable is used to connect to the Docker daemon.
+  DOCKER_HOST: tcp://docker:2376/
+  # GitLab API token, needed to comment on the Merge Request.
+  GITLAB_API_TOKEN: $GITLAB_API_TOKEN
+  # Discord webhook URL, needed to send a message to the Discord channel.
+  DISCORD_WEBHOOK_URL: $DISCORD_WEBHOOK_URL
+  # AWS credentials. These are used to login to AWS ECR.
+  # The credentials are stored in the GitLab project's variables.
+  AWS_ACCOUNT_ID: $AWS_ACCOUNT_ID
+  AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+  AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+  AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+  # ECR repository name.
+  # This is the name of the ECR repository where the application image will be pushed.
+  AWS_ECR_REPOSITORY_NAME: $AWS_ECR_REPOSITORY_NAME
+  # Image prefix.
+  # This is the prefix that will be used to tag the application image.
+  IMAGE_PREFIX: backend
+
+  # Set the environment variables for the application.
+  # DB_ENVIRONMENT is set to test to run the tests in the pipeline.
+  DB_ENVIRONMENT: test
+
+# Stages.
+# The stages are used to organize the jobs.
+# They run in the order they are defined.
+stages:
+  - test
+  - build_and_publish
+
+# Test stage.
+#
+# This stage runs the tests.
+# The pipeline will fail if at least one test fails.
+#
+# This stage will run when commits are pushed to the develop and main branches.
+# It will also run when a merge request is opened against these branches.
+test:
+  stage: test
+  image: python:3.10.11-slim
+  script:
+    # Install Java 11 (Needed to use Tabula-Py).
+    - echo "[Installing Java 11 to use Tabula-Py]"
+    - apt update && apt install -y -f openjdk-11-jre-headless
+    # Install Dependencies.
+    - echo "[Installing Poetry]"
+    - pip install "poetry==1.4.1"
+    - poetry config virtualenvs.create false
+    - echo "[Installing Dependencies]"
+    - poetry install
+    # Run tests.
+    - echo "[Running Tests]"
+    - poetry run pytest --cov=app 2>&1 | tee test-results.txt
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main"'
+      when: on_success
+  after_script:
+    # If not running on a Merge Request, exit the job.
+    - |
+      if [ -z "$CI_MERGE_REQUEST_ID" ]; then
+        echo "The job is not running on a Merge Request. Skipping..."
+        exit 0
+      fi
+    # Save test coverage results to a variable.
+    - TESTS_COVERAGE=$(cat test-results.txt | sed -n -e '/Name/,$p')
+    # Download curl.
+    - echo "[Downloading curl]"
+    - apt update && apt install -y curl
+    # Post a comment on the Merge Request with the job result.
+    # Only post the comment if the job is running on a Merge Request (opened).
+    # The predefined variable CI_MERGE_REQUEST_ID is only available on Merge Requests that are opened.
+    - echo "[Commenting on Merge Request]"
+    - |
+      NEW_LINE=$'\n'
+      JOB_URL="$CI_PROJECT_URL/-/jobs/$CI_JOB_ID"
+      if [ "$CI_JOB_STATUS" == "success" ]; then
+        BOT_MESSAGE="### :heavy_check_mark: Os Testes Passaram!${NEW_LINE}E tu não fez mais que a tua obrigação, $CI_COMMIT_AUTHOR... Veja os [logs do job]($JOB_URL) para mais detalhes. O Merge Request agora está liberado para ser mergeado em \`$CI_MERGE_REQUEST_TARGET_BRANCH_NAME\`."
+      else
+        BOT_MESSAGE="### :x: Os Testes Falharam!${NEW_LINE}Em pleno 2023, ano da tecnologia, sabe Elon Musk? Está construindo um foguete. E você aí quebrando pipelines, $CI_COMMIT_AUTHOR... Veja os [logs do job]($JOB_URL) para mais detalhes."
+      fi
+      BOT_MESSAGE="$BOT_MESSAGE${NEW_LINE}### :bookmark_tabs: Cobertura dos Testes${NEW_LINE}Após os testes serem rodados, essa foi a cobertura obtida para cada arquivo:${NEW_LINE}\`\`\`${NEW_LINE}$TESTS_COVERAGE${NEW_LINE}\`\`\`"
+      curl -X POST \
+        -H "PRIVATE-TOKEN: $GITLAB_API_TOKEN" \
+        --form "body=$BOT_MESSAGE" \
+        "$CI_API_V4_URL/projects/$CI_PROJECT_ID/merge_requests/$CI_MERGE_REQUEST_IID/notes"
+
+# Build and publish stage.
+#
+# This stage builds the application image and publishes it to AWS ECR using Docker.
+#
+# This stage will run when a commit is pushed to the main branch.
+# This stage can also be triggered manually when commits are pushed to the develop branch.
+build_and_publish:
+  stage: build_and_publish
+  image: docker:23.0.3-cli-alpine3.17
+  # The service docker:dind is used to run the Docker daemon inside the container.
+  # This is needed because the Docker CLI is used to build and push the application image.
+  # dind stands for Docker in Docker.
+  services:
+    - docker:dind
+  script:
+    # Install AWS CLI.
+    - echo "[Installing AWS CLI]"
+    - apk add --update --no-cache aws-cli
+    # Configure AWS CLI.
+    - echo "[Configuring AWS CLI]"
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set default.region $AWS_DEFAULT_REGION
+    # Login to AWS ECR.
+    - echo "[Logging in to AWS ECR]"
+    - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+    # Build the application.
+    - echo "[Building the Application Image]"
+    - IMAGE_NAME=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$AWS_ECR_REPOSITORY_NAME
+    - IMAGE_TAG=$IMAGE_PREFIX-$CI_COMMIT_SHA
+    - docker build -t $IMAGE_NAME:$IMAGE_TAG .
+    # Push the application to AWS ECR.
+    - echo "[Pushing the Application Image to AWS ECR]"
+    - docker push $IMAGE_NAME:$IMAGE_TAG
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+  after_script:
+    # Download curl.
+    - echo "[Downloading curl]"
+    - apk add --update --no-cache curl
+    # Send a message to the Discord channel.
+    - echo "[Sending a message to the Discord channel]"
+    - |
+      JOB_URL="$CI_PROJECT_URL/-/jobs/$CI_JOB_ID"
+      if [ "$CI_JOB_STATUS" == "success" ]; then
+        TITLE=":white_check_mark: Build e Publicação (Backend) - Sucesso!"
+        DESCRIPTION="A imagem do backend foi construída e publicada com sucesso no repositório ECR da AGES! Veja os [logs do job]($JOB_URL) para mais detalhes."
+      else
+        TITLE=":x: Build e Publicação (Backend) - Erro!"
+        DESCRIPTION="Não foi possível construir e publicar a imagem do backend no repositório ECR da AGES. Veja os [logs do job]($JOB_URL) para saber o que houve de errado."
+      fi
+      curl -H "Content-Type: application/json" -X POST -d "{\"embeds\":[{\"title\":\"$TITLE\",\"description\":\"$DESCRIPTION\",\"color\":14177041}]}" $DISCORD_WEBHOOK_URL
