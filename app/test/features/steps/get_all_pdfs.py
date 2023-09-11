@@ -6,16 +6,12 @@ from app.api.models.pdf import PDF
 # Create a TestClient instance to interact with the FastAPI application
 test_app = TestClient(app=app)
 
-# Variable to store the response
-response = None
-
 @given("I am using the application")
 def step_given_application_running(context):
     pass
 
 @when(r'I send a GET request to "/pdfs"')
 def step_when_send_get_request(context):
-    global response
     response = test_app.get("/pdfs")
     context.response = response
 
