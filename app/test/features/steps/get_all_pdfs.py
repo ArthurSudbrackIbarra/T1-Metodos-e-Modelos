@@ -1,7 +1,6 @@
 from fastapi.testclient import TestClient
 from behave import given, when, then
 from app.main import app
-from app.api.models.pdf import PDF
 
 # Create a TestClient instance to interact with the FastAPI application
 test_app = TestClient(app=app)
