@@ -19,7 +19,7 @@ def step_given_application_running(context):
 
 
 # Define the step for the "When I send a POST request to '/pdfs' with the following JSON" scenario
-@when(u'I send a POST request to "/pdfs" with the following JSON')
+@when(u'I send a POST request to /pdfs with the following JSON')
 def step_when_send_post_request_with_json(context):
     global global_response
     pdf_data_json = context.text

@@ -12,7 +12,7 @@ global_pdf_name = ''
 global_response = None
 
 
-@given("That there is a PDF with the name {pdf_name}")
+@given('That there is a PDF with the name "{pdf_name}"')
 def step_given_that_there_is_a_pdf_with_the_name(context, pdf_name):
     global global_pdf_name
     global_pdf_name = pdf_name
@@ -21,7 +21,7 @@ def step_given_that_there_is_a_pdf_with_the_name(context, pdf_name):
     test_app.post("/pdfs", json=pdf.dict())
 
 
-@when(r'I send a GET request to /pdfs/{pdf_name}')
+@when('I send a GET request to /pdfs/"{pdf_name}"')
 def step_when_send_get_request_by_name(context, pdf_name):
     global global_response
     endpoint = f"/pdfs/{pdf_name}"
@@ -44,7 +44,7 @@ def step_then_check_response_contains_pdf_with_name(context):
     assert global_response.json()["nome"] == global_pdf_name
 
 
-@given("That there isnt a PDF with the name {pdf_name}")
+@given('That there isnt a PDF with the name "{pdf_name}"')
 def step_given_that_there_isnt_a_pdf_with_the_name(context, pdf_name):
     global global_pdf_name
     global_pdf_name = pdf_name
@@ -53,5 +53,4 @@ def step_given_that_there_isnt_a_pdf_with_the_name(context, pdf_name):
 @then("the GET by name response status code should be 404 not found")
 def step_then_check_status_code(context):
     global global_response
-    print(global_response)
     assert global_response.status_code == status.HTTP_404_NOT_FOUND

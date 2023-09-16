@@ -18,7 +18,7 @@ def step_given_there_are_pdfs_saved(context):
     assert response.status_code == status.HTTP_200_OK
 
 
-@when(r'I send a GET request to "/pdfs"')
+@when(r'I send a GET request to /pdfs')
 def step_when_send_get_request(context):
     global global_response
     response = test_app.get("/pdfs")

@@ -7,7 +7,7 @@ Feature: Create a PDF
 
     Scenario: Creating a PDF
         Given the application is running
-        When I send a POST request to "/pdfs" with the following JSON:
+        When I send a POST request to /pdfs with the following JSON:
             """
             {
                 "nome": "ExamplePDF.pdf",
