@@ -124,5 +124,5 @@ poetry run pytest --cov=app
 Para executar os testes unitários da aplicação com Gherkin, execute o seguinte comando na raiz do projeto:
 
 ```sh
-poetry run behave .\app\test\features
+poetry run behave app/test/features --no-capture
 ```

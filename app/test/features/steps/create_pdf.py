@@ -11,6 +11,8 @@ test_app = TestClient(app=app)
 global global_response
 
 # Define the step for the "Given the application is running" scenario
+
+
 @given('the application is running')
 def step_given_application_running(context):
     pass  # This step is already defined in the feature
