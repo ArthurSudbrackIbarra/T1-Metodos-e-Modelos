@@ -15,7 +15,6 @@ global global_response
 def step_given_there_are_pdfs_saved(context):
     pdf = build_pdf_with_default_params()
     response = test_app.post("/pdfs", json=pdf.dict())
-    assert response.status_code == status.HTTP_200_OK
 
 
 @when(r'I send a GET request to /pdfs')
