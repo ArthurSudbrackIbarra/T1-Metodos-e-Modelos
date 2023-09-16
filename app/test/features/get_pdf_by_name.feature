@@ -10,3 +10,8 @@ Feature: Get a PDF by name
         When I send a GET request to /pdfs/"jeep.pdf"
         Then the GET by name response status code should be 200 OK
         And the response should contain a PDF with the same name requested
+
+    Scenario: User requests to get a PDF by name not registered
+        Given That there isnt a PDF with the name "jipe.pdf"
+        When I send a GET request to /pdfs/"jipe.pdf"
+        Then the GET by name response status code should be 404 not found
