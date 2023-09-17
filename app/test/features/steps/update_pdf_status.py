@@ -47,3 +47,11 @@ def step_then_check_status_code_ok(context):
 def step_then_check_status_code_bad_request(context):
     global global_response
     assert global_response.status_code == status.HTTP_400_BAD_REQUEST
+
+@then('the PDF with the name "{pdf_name}" should have its status equal to "{new_status}"')
+def step_then_the_pdf_with_the_name_should_have_status(context, pdf_name, new_status):
+    global global_response
+    endpoint = f"/pdfs/{pdf_name}"
+    response = test_app.get(endpoint)
+    global_response = response
+    assert global_response.json()["status"] == getattr(Status, new_status)

@@ -9,6 +9,7 @@ Feature: Update a PDF by name
         Given That there is a PDF that needs to be updated with the name "toyota.pdf"
         When I send an UPDATE request to /pdfs/"toyota.pdf"
         Then the UPDATE by name response status code should be 200 OK
+        And the PDF with the name "toyota.pdf" status should be "CONCLUIDO"
 
     Scenario: User requests to update a PDF by name not found
         Given That there isnt a PDF registered with the name "toiota.pdf"
