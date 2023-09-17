@@ -1,0 +1,32 @@
+on:
+  push:
+    branches:
+      - "main"
+  pull_request:
+    branches:
+      - "main"
+
+env:
+  DB_ENVIRONMENT: test # Needed for the database to run in test mode.
+
+jobs:
+  test_gherkin:
+    runs-on: "ubuntu-22.04"
+    steps:
+      # Checkout the repository to the GitHub Actions runner.
+      - name: "Checkout Code"
+        uses: "actions/checkout@v3"
+      # Install Python, version 3.11.
+      - name: "Install Python"
+        uses: "actions/setup-python@v4"
+        with:
+          python-version: "3.11"
+      # Install Poetry, version 1.4.1.
+      - name: "Install Poetry"
+        run: "pip install poetry==1.4.1"
+      # Install dependencies.
+      - name: "Install Dependencies"
+        run: "poetry install"
+      # Run the tests with Gherkin.
+      - name: "Run Tests With Gherkin"
+        run: "poetry run behave app/test/features"
