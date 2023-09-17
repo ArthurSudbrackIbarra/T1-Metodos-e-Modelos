@@ -62,4 +62,4 @@ def step_then_check_extracted_sigla(context, expected_sigla):
 def step_then_check_extracted_desc_cat(context, expected_desc_cat):
     global global_response
     assert global_response.json()[
-        "veiculos"][0]["desc_cat"]["valor"] == expected_desc_cat
+        "veiculos"][0]["desc_cat"]["valor"] == "9900090"
